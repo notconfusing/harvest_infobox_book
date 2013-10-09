@@ -18,12 +18,14 @@ import xisbn
 from collections import defaultdict
 from pprint import pprint
 import copy
+import pyisbn
 
 
 en_wikipedia = pywikibot.Site('en', 'wikipedia')
 wikidata = en_wikipedia.data_repository()
 if not wikidata.logged_in(): wikidata.login()
 if not en_wikipedia.logged_in(): en_wikipedia.login()
+
 
 source = pywikibot.Claim(wikidata, 'p143')
 source.setTarget(pywikibot.ItemPage(wikidata,'q328'))
@@ -40,8 +42,131 @@ wplangs = {'en':'Q328',
            'de':'Q48183',
            'fr':'Q8447',
            'it':'Q11920',
+           "es": "q8449",
+           "ja": "q177837",
+           "ru": "q206855",
+           "pl": "q1551807",
+           "sv": "q169514",
            'imported_from': 'P143'}
 
+wpsites = {'en': {'isbn': 'isbn',
+                  'oclc': 'oclc',
+                 'author': 'author',
+                 'illustrator': 'illustrator',
+                 'translator': 'translator',
+                 'language': 'language',
+                 'published': 'published',
+                 'genre': 'genre',
+                 'dewey': 'dewey'},
+           'it': {'isbn': None,
+                  'oclc': None,
+                 'author': 'autore',
+                 'illustrator': None,
+                 'translator': None,
+                 'language': 'lingua',
+                 'published': 'annoorig',
+                 'genre': 'genere',
+                 'dewey': None},
+           'fr': {'isbn': 'isbn',
+                  'oclc': None,
+                 'author': 'auteur',
+                 'illustrator': 'dessinateur',
+                 'translator': 'traducteur',
+                 'language': 'langue',
+                 'published': 'dateparution_orig',
+                 'genre': 'genere',
+                 'dewey': None},
+           'es': {'isbn': 'isbn',
+                  'oclc': 'oclc',
+                  'author': 'autor',
+                  'illustrator': 'ilustrador',
+                  'translator': 'traductor',
+                  'language': 'idioma original',
+                  'published': 'publicación original',
+                  'genre': 'género',
+                  'dewey': None},
+           'ja': {'isbn': None,
+                  'oclc': None,
+                  'author': 'author',
+                  'illustrator': 'illustrator',
+                  'translator': 'translator',
+                  'language': 'language',
+                  'published': 'published',
+                  'genre': 'genre',
+                  'dewey': None},
+           'pl': {'isbn': None,
+                  'oclc': None,
+                  'author': 'autor',
+                  'illustrator': None,
+                  'translator': 'tłumacz',
+                  'language': 'język oryg wyd',
+                  'published': 'data I wyd oryg',
+                  'genre': 'tematyka',
+                  'dewey': None},
+           'pt': {'isbn': 'isbn',
+                  'oclc': None,
+                  'author': 'autor',
+                  'illustrator': 'ilustrador',
+                  'translator': 'tradutor_br',
+                  'language': 'idioma',
+                  'published': 'lançamento',
+                  'genre': 'gênero',
+                  'dewey': None},
+           'sv': {'isbn': 'isbn',
+                  'oclc': None,
+                  'author': 'autor',
+                  'illustrator': 'ilustrador',
+                  'translator': 'tradutor_br',
+                  'language': 'idioma',
+                  'published': 'lançamento',
+                  'genre': 'gênero',
+                  'dewey': None},
+           'ru': {'isbn': 'isbni',
+                  'oclc': None,
+                  'author': 'Автор',
+                  'illustrator': 'illustratör ',
+                  'translator': 'Переводчик',
+                  'language': 'Язык',
+                  'published': 'Оригинал выпуска',
+                  'genre': 'Жанр',
+                  'dewey': None}
+           }
+
+
+templateTitleDict = {'en': u'Infobox book', 
+                     'it': u'Libro', 
+                     'fr': u'Infobox Livre',
+                     'es': u'Ficha de libro',
+                     'ja': u'基礎情報 書籍',
+                     'pl': u'Książka infobox',
+                     'pt': u'Info/Livro',
+                     'sv': u'Bokfakta',
+                     'ru': u'Издание'}
+
+templateNSDict = {'en': u'Template:', 
+                  'it': u'Template:', 
+                  'fr': u'Modèle:',
+                  'es': u'Plantilla:',
+                  'ja': u'Template:',
+                  'pl': u'Szablon:',
+                  'pt': u'Predefinição:',
+                  'sv': u'Mall:',
+                  'ru': u'Шаблон:'}
+
+
+
+def makeGenerator(lang):
+    templateNS = templateNSDict[lang]
+    templateTitle = templateTitleDict[lang]
+    tsite = pywikibot.Site(lang, 'wikipedia')
+    templatePage = pywikibot.Page(tsite, templateNS+templateTitle)
+    generator = pg.ReferringPageGenerator(templatePage, followRedirects=False,
+                           withTemplateInclusion=True,
+                           onlyTemplateInclusion=True,
+                           step=None, total=None, content=False)
+    return generator
+
+           
 def logVIAFstats(remoteClaims):
     for remoteClaimList in remoteClaims.itervalues():
         for remoteClaim in remoteClaimList:
@@ -80,42 +205,52 @@ def incorp_xdata(book):
             cases['got_ocn_from_xisbn'] += 1
             
 def checkISBN13(book):
-    def ISBN13(isbn):
+    def ISBNsize(isbn, isnblen):
         justnums = filter(lambda x: x in '1234567890Xx', isbn)
-        if len(justnums) == 13:
+        if len(justnums) == isbnlen:
             return True
         else:
             return False
-    isbn13s = list()
-    for isbn in book.isbns:
-        if ISBN13(isbn):
-            isbn13s.append(isbn)
+        
+        
+    isbnlists ={13: list(), 10:list() }
+    for isbnlen in isbnlists.iterkeys():
+        for isbn in book.isbns:
+            if ISBNsize(isbn, isbnlen):
+                isbnlists[isbnlen].append(isbn)
+    
     #no isbn13s
-    if not isbn13s:
+    if not isbnlists[13] and not isbnlists[10]:
         if book.xisbns:
             book.xisbns.sort()
             book.isbns.append(book.xisbns[0])
             print 'using an xisbn here'
             cases['put_in_a_isbn13'] += 1
-
+    
+    if isbnlists[10] and not isbnlists[13]:
+        for isbn in isbnlists[10]:
+            converted = pyisbn.convert(isbn)
+            print 'conversion', isbn, converted
+            book.isbns.append(converted)
 
 def processRE(param, rx):
     cleaned_text = textlib.removeDisabledParts(str(param.value.strip()))
     relist = re.findall(rx, cleaned_text)
     return relist
 
-def processLinks(param):
+def processLinks(param, wpsitelang):
     itempagelist = list()
+    tsite = pywikibot.Site(wpsitelang, 'wikipedia')
     for mwnode in param.value.filter():
         if type(mwnode) == mwparserfromhell.nodes.wikilink.Wikilink:
             try:
-                if pywikibot.Page(en_wikipedia, mwnode.title).isRedirectPage():
-                    redirpage = pywikibot.Page(en_wikipedia, mwnode.title).getRedirectTarget()
+                if pywikibot.Page(tsite, mwnode.title).isRedirectPage():
+                    redirpage = pywikibot.Page(tsite, mwnode.title).getRedirectTarget()
                     pagetitle = redirpage.title()
                 else:
                     pagetitle = mwnode.title
                 #hopefully here you can see im trying to add to the returnlist a Wikdata ItemPage associated with a mwparerfromhell wikilink
-                itempagelist.append(pywikibot.ItemPage.fromPage(pywikibot.Page(en_wikipedia, pagetitle)))
+                itempagelist.append(pywikibot.ItemPage.fromPage(pywikibot.Page(tsite, pagetitle)))
             except:
                 raise
     return itempagelist
@@ -123,6 +258,7 @@ def processLinks(param):
 
 def processISBNs(param, book):
     isbns = processRE(param=param, rx="[0-9][--–\ 0-9]{9,16}[xX]?")
+    isbns = map(lambda x: x.replace(' ', ''),  isbns)
     xisbns = set()
     xocns = set()
     for isbn in isbns:
@@ -136,64 +272,67 @@ def processISBNs(param, book):
     book.xisbns.extend(list(xisbns))
     book.xocns.extend(list(xocns))
     
-def processOCNs(param, book):
+def processOCNs(param, book, wpsitelang):
     ocns = processRE(param=param, rx="\d+")
     book.ocns.extend(ocns)
     
-def processDewey(param, book):
+def processDewey(param, book, wpsitelang):
     deweys = processRE(param=param, rx="[^,]+")
     book.deweys.extend(deweys)
 
-def processAuthors(param, book):
-    book.authors.extend(processLinks(param))
+def processAuthors(param, book, wpsitelang):
+    book.authors.extend(processLinks(param, wpsitelang))
     
-def processIllustrators(param, book):
-    book.illustrators.extend(processLinks(param))
+def processIllustrators(param, book, wpsitelang):
+    book.illustrators.extend(processLinks(param, wpsitelang))
     
-def processTranslators(param, book):
-    book.translators.extend(processLinks(param))
+def processTranslators(param, book, wpsitelang):
+    book.translators.extend(processLinks(param, wpsitelang))
         
-def processGenre(param, book):
-    book.genres.extend(processLinks(param))
+def processGenre(param, book, wpsitelang):
+    book.genres.extend(processLinks(param, wpsitelang))
     
-def processLanguage(param, book):
-    book.langs.extend(processLinks(param))
+def processLanguage(param, book, wpsitelang):
+    book.langs.extend(processLinks(param, wpsitelang))
 
-def processPublished(param, book):
+def processPublished(param, book, wpsitelang):
     pass
 
         
 
     
-def processPage(page):
+def processPage(page, wpsitelang):
     """
-    Proces a single page
+    Process a single page
     """
-    book = bookdata(pywikibot.ItemPage.fromPage(page))
+    paramdict = wpsites[wpsitelang]
+    wditem = pywikibot.ItemPage.fromPage(page)
+    book = bookdata(wditem)
     pywikibot.output('Processing %s' % page)
     pagetext = page.get()
     wikicode = mwparserfromhell.parse(pagetext)
     for template in wikicode.filter_templates():
-        if template.name.startswith(templateTitle):
+        if template.name.startswith(templateTitleDict[wpsitelang]):
             for param in template.params:
-                if param.name.strip() == 'isbn':
-                    processISBNs(param, book)
-                if param.name.strip() == 'oclc':
-                    processOCNs(param, book)
-                if param.name.strip() == 'author':
-                    processAuthors(param, book)
-                if param.name.strip() == 'illustrator':
-                    processIllustrators(param, book)
-                if param.name.strip() == 'translator':
-                    processTranslators(param, book) 
-                if param.name.strip() == 'language':
-                    processLanguage(param, book)
-                if param.name.strip() == 'published':
-                    processPublished(param, book)
-                if param.name.strip() == 'genre':
-                    processGenre(param, book)
-                if param.name.strip() == 'dewey':
-                    processDewey(param, book)
+                paramname = param.name.strip()
+                if paramname == paramdict['isbn']:
+                    processISBNs(param, book, wpsitelang)
+                if paramname == paramdict['oclc']:
+                    processOCNs(param, book, wpsitelang)
+                if paramname == paramdict['author']:
+                    processAuthors(param, book, wpsitelang)
+                if paramname == paramdict['illustrator']:
+                    processIllustrators(param, book, wpsitelang)
+                if paramname == paramdict['translator']:
+                    processTranslators(param, book, wpsitelang) 
+                if paramname == paramdict['language']:
+                    processLanguage(param, book, wpsitelang)
+                if paramname == paramdict['published']:
+                    processPublished(param, book, wpsitelang)
+                if paramname == paramdict['genre']:
+                    processGenre(param, book, wpsitelang)
+                if paramname == paramdict['dewey']:
+                    processDewey(param, book, wpsitelang)
     return book
 
 def propertiesToClaims(book, lang):
@@ -276,12 +415,6 @@ def compareClaims(book, sourcelang):
                 pprint(localClaim)
             continue
 
-templateTitle = u'Infobox book'
-templatePage = pywikibot.Page(en_wikipedia, "Template:"+templateTitle)
-generator = pg.ReferringPageGenerator(templatePage, followRedirects=False,
-                       withTemplateInclusion=True,
-                       onlyTemplateInclusion=True,
-                       step=None, total=None, content=False)
 
 
 try:
@@ -300,7 +433,7 @@ try:
     allbooks = json.load(allbooksJSON)
     allbooksJSON.close()    
 except IOError:
-    allbooks = list()
+    allbooks = defaultdict(list)
 
 def savecases():
     casesJSON = open('cases.JSON', 'w')
@@ -311,16 +444,17 @@ def savecases():
     json.dump(allbooks, allbooksJSON, indent=4)
     allbooksJSON.close()
     
-def run():
+def run(wpsitelang):
     touched = 0
+    generator = makeGenerator(wpsitelang)
     for page in generator:
         touched += 1
         fake = False
         if not fake:
             if cases['prevtouched'] >= touched:
                 continue        
-        book = processPage(page)
-        allbooks.append(book.dictify())
+        book = processPage(page, wpsitelang)
+        allbooks[wpsitelang].append(book.dictify())
         incorp_xdata(book)
         checkISBN13(book)
         #pprint (vars(book))
@@ -330,5 +464,6 @@ def run():
         savecases()
 
 if __name__ == "__main__":
-    run()    
+    for lang in wpsites.iterkeys():
+        run(lang)
     
