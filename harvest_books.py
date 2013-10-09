@@ -192,9 +192,15 @@ class bookdata:
         
     def dictify(self):
         bookdict = dict()
-        for k, v in self.__dict__.iteritems():    
-            bookdict[k] = str(v)
-        bookdict['wditem'] = self.wditem.getID()
+        for k, v in self.__dict__.iteritems():  
+            try:  
+                bookdict[k] = str(v)
+            except pywikibot.exceptions.NoPage:
+                bookdict[k] = 'pywikibot.exceptions.NoPage'
+        try:
+            bookdict['wditem'] = self.wditem.getID()
+        except pywikibot.exceptions.NoPage:
+            bookdict[k] = 'pywikibot.exceptions.NoPage'
         return bookdict
     
 def incorp_xdata(book):
