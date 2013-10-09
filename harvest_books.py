@@ -366,9 +366,13 @@ def propertiesToClaims(book, lang):
 
 def compareClaims(book, sourcelang):
     qid = book.wditem.getID()
-    pageToEdit = pywikibot.ItemPage(wikidata, qid)
-    page_parts = pageToEdit.get()
-    
+    try:
+        pageToEdit = pywikibot.ItemPage(wikidata, qid)
+        page_parts = pageToEdit.get()
+    except pywikibot.data.api.APIError:
+        #maybe there's no associated wikidata page
+        return
+            
     localClaims = propertiesToClaims(book, sourcelang)
 
     remoteClaims = page_parts['claims']
