@@ -4,6 +4,10 @@ import ast
 import md5
 import time
 
+secret = open('secret.txt', 'r').read().strip()
+print type(secret)
+
+
 class isbnError(Exception):
     def __init__(self, value):
         self.value = value
@@ -40,7 +44,7 @@ def xisbn(search_isbn, metadata=False):
         fl = '&fl=*'
     rformat = '&format=python'
     token = '&token=246'
-    m = md5.new(pre + decimal_search_isbn +"|"+externalIP+"|"+'tourniquet')
+    m = md5.new(pre + decimal_search_isbn +"|"+externalIP+"|"+secret)
     hash = '&hash='+ m.hexdigest()
     url = pre + decimal_search_isbn + method + rformat + fl + token + hash
     print url
