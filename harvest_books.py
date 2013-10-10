@@ -250,15 +250,19 @@ def processLinks(param, wpsitelang):
     for mwnode in param.value.filter():
         if type(mwnode) == mwparserfromhell.nodes.wikilink.Wikilink:
             try:
-                if pywikibot.Page(tsite, mwnode.title).isRedirectPage():
-                    redirpage = pywikibot.Page(tsite, mwnode.title).getRedirectTarget()
-                    pagetitle = redirpage.title()
-                else:
-                    pagetitle = mwnode.title
+                paramLinkRedir = pywikibot.Page(tsite, mwnode.title).isRedirectPage()
+            except:
+                paramLinkRedir = False
+            if paramLinkRedir:
+                redirpage = pywikibot.Page(tsite, mwnode.title).getRedirectTarget()
+                pagetitle = redirpage.title()
+            else:
+                pagetitle = mwnode.title
                 #hopefully here you can see im trying to add to the returnlist a Wikdata ItemPage associated with a mwparerfromhell wikilink
+            try:
                 itempagelist.append(pywikibot.ItemPage.fromPage(pywikibot.Page(tsite, pagetitle)))
             except:
-                raise
+                continue
     return itempagelist
 
 
