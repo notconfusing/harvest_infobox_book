@@ -466,18 +466,20 @@ def run(wpsitelang):
         fake = False
         if not fake:
             if cases['prevtouched'] >= touched:
-                continue        
-        book = processPage(page, wpsitelang)
-        allbooks[wpsitelang].append(book.dictify())
-        incorp_xdata(book)
-        checkISBN13(book)
-        #pprint (vars(book))
-        compareClaims(book, 'en')
+                continue
+        if page.namespace() == 0:        
+            book = processPage(page, wpsitelang)
+            allbooks[wpsitelang].append(book.dictify())
+            incorp_xdata(book)
+            checkISBN13(book)
+            #pprint (vars(book))
+            compareClaims(book, 'en')
         
         cases['prevtouched'] = touched
         savecases()
 
 if __name__ == "__main__":
     for lang in wpsites.iterkeys():
+        print 'running now on language: ', lang
         run(lang)
     
