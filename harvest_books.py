@@ -476,7 +476,7 @@ def run(wpsitelang):
             incorp_xdata(book)
             checkISBN13(book)
             #pprint (vars(book))
-            compareClaims(book, 'en')
+            compareClaims(book, wpsitelang)
         
         cases['prevtouched'] = touched
         savecases()
