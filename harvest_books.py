@@ -235,12 +235,15 @@ def checkISBN13(book):
     
     if isbnlists[10] and not isbnlists[13]:
         for isbn in isbnlists[10]:
-            converted = pyisbn.convert(isbn)
-            print 'conversion', isbn, converted
-            book.isbns.append(converted)
+            try:
+                converted = pyisbn.convert(isbn)
+                print 'conversion', isbn, converted
+                book.isbns.append(converted)
+            except:
+                pass
 
 def processRE(param, rx):
-    cleaned_text = textlib.removeDisabledParts(str(param.value.strip()))
+    cleaned_text = textlib.removeDisabledParts(unicode(param.value.strip()))
     relist = re.findall(rx, cleaned_text)
     return relist
 
