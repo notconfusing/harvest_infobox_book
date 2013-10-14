@@ -266,7 +266,7 @@ def processLinks(param, wpsitelang):
     return itempagelist
 
 
-def processISBNs(param, book):
+def processISBNs(param, book, wpsitelang):
     isbns = processRE(param=param, rx="[0-9][--–\ 0-9]{9,16}[xX]?")
     isbns = map(lambda x: x.replace(' ', ''),  isbns)
     xisbns = set()
