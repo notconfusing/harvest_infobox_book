@@ -47,11 +47,16 @@ def xisbn(search_isbn, metadata=False):
     m = md5.new(pre + decimal_search_isbn +"|"+externalIP+"|"+secret)
     hash = '&hash='+ m.hexdigest()
     url = pre + decimal_search_isbn + method + rformat + fl + token + hash
-    print url
-    try:
-        data = urllib2.urlopen(url)
-    except:
-        raise
+    for i in range(3):
+        try:
+            data = urllib2.urlopen(url)
+            break
+        except:
+            if i < 2:
+                print 'retrying to xisbn: ' + decimal_search_isbn + ', ' + i + 'times'
+                time.sleep(3)
+            else:
+                raise isbnError("it seems like the server isn't responding")
     pyth_obj = ast.literal_eval(data.read())
     
     #chech errors
