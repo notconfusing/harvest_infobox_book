@@ -279,7 +279,7 @@ def processISBNs(param, book, wpsitelang):
             metadata = xisbn.xisbn(isbn, metadata=True)
             xisbns.update(metadata['isbn'])
             xocns.update(metadata['oclcnum'])
-        except xisbn.isbnError:
+        except (xisbn.isbnError, UnicodeEncodeError):
             pywikibot.output('xisbn error')
     book.isbns.extend(isbns)
     book.xisbns.extend(list(xisbns))
