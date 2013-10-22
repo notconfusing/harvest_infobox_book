@@ -435,24 +435,6 @@ def compareClaims(book, sourcelang):
 
 
 
-try:
-    casesJSON = open('cases.JSON','r')
-    cases = defaultdict(int)
-    savedcases = json.load(casesJSON)
-    for k, v in savedcases.iteritems():
-        cases[k] = v
-    casesJSON.close()    
-except IOError:
-    cases = defaultdict(int)
-    cases["prevtouched"] = 0
-    
-try:
-    allbooksJSON = open('allbooks.JSON','r')
-    allbooks = json.load(allbooksJSON)
-    allbooksJSON.close()    
-except IOError:
-    allbooks = defaultdict(list)
-
 def savecases():
     casesJSON = open('cases.JSON', 'w')
     json.dump(cases, casesJSON, indent=4)
@@ -484,6 +466,26 @@ def run(wpsitelang):
         savecases()
 
 if __name__ == "__main__":
+    '''open our saves'''
+    try:
+        casesJSON = open('cases.JSON','r')
+        cases = defaultdict(int)
+        savedcases = json.load(casesJSON)
+        for k, v in savedcases.iteritems():
+            cases[k] = v
+        casesJSON.close()    
+    except IOError:
+        cases = defaultdict(int)
+        for wpsitelang in wpsites.iterkeys():
+            cases[wpsitelang+'prevtouched'] = 0
+        
+    try:
+        allbooksJSON = open('allbooks.JSON','r')
+        allbooks = json.load(allbooksJSON)
+        allbooksJSON.close()    
+    except IOError:
+        allbooks = defaultdict(list)
+    
     for lang in wpsites.iterkeys():
         print 'running now on language: ', lang
         run(lang)
