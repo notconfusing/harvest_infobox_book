@@ -263,7 +263,8 @@ def processLinks(param, wpsitelang):
                 pagetitle = mwnode.title
                 #hopefully here you can see im trying to add to the returnlist a Wikdata ItemPage associated with a mwparerfromhell wikilink
             try:
-                itempagelist.append(pywikibot.ItemPage.fromPage(pywikibot.Page(tsite, pagetitle)))
+                appendpage = pywikibot.ItemPage.fromPage(pywikibot.Page(tsite, pagetitle))
+                itempagelist.append(appendpage)
             except:
                 continue
     return itempagelist
@@ -463,12 +464,13 @@ def savecases():
     
 def run(wpsitelang):
     touched = 0
+    prevtouch = wpsitelang+'prevtouched'
     generator = makeGenerator(wpsitelang)
     for page in generator:
         touched += 1
         fake = False
         if not fake:
-            if cases['prevtouched'] >= touched:
+            if cases[prevtouch] >= touched:
                 continue
         if page.namespace() == 0:        
             book = processPage(page, wpsitelang)
@@ -478,11 +480,11 @@ def run(wpsitelang):
             #pprint (vars(book))
             compareClaims(book, wpsitelang)
         
-        cases['prevtouched'] = touched
+        cases[prevtouch] = touched
         savecases()
 
 if __name__ == "__main__":
     for lang in wpsites.iterkeys():
         print 'running now on language: ', lang
         run(lang)
-    
+        print 'done with language: ', lang
