@@ -5,7 +5,6 @@ import md5
 import time
 
 secret = open('secret.txt', 'r').read().strip()
-print type(secret)
 
 
 class isbnError(Exception):

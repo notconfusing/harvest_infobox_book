@@ -267,7 +267,14 @@ def processLinks(param, wpsitelang):
                 itempagelist.append(appendpage)
             except:
                 continue
-    return itempagelist
+    existlist = list()
+    for itempage in itempagelist:
+        try:
+            itempage.getID()
+            existlist.append(itempage)
+        except pywikibot.exceptions.NoPage:
+            continue
+    return existlist
 
 
 def processISBNs(param, book, wpsitelang):
@@ -451,11 +458,19 @@ def run(wpsitelang):
     for page in generator:
         touched += 1
         fake = False
+        '''
+        for testing specific pages
+        if fake:
+            page = pywikibot.Page(en_wikipedia, 'The Battle for Bond')
+            wpsitelang = 'en'
+        '''
         if not fake:
             if cases[prevtouch] >= touched:
                 continue
-        if page.namespace() == 0:        
+        if page.namespace() == 0:
+            #make our book instance from wpdata        
             book = processPage(page, wpsitelang)
+            #save a copy to a json flat db for later statistics
             allbooks[wpsitelang].append(book.dictify())
             incorp_xdata(book)
             checkISBN13(book)
