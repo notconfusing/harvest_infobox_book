@@ -121,7 +121,7 @@ wpsites = {'en': {'isbn': u'isbn',
                   'published': u'lançamento',
                   'genre': u'gênero',
                   'dewey': None},
-           'ru': {'isbn': u'isbni',
+           'ru': {'isbn': u'isbn',
                   'oclc': None,
                   'author': u'Автор',
                   'illustrator': u'illustratör ',
@@ -278,8 +278,17 @@ def processLinks(param, wpsitelang):
 
 
 def processISBNs(param, book, wpsitelang):
-    isbns = processRE(param=param, rx="[0-9][--–\ 0-9]{9,16}[xX]?")
-    isbns = map(lambda x: x.replace(' ', ''),  isbns)
+    isbns = processRE(param=param, rx="[0-9][\-\-\–\ 0-9]{9,16}[xX]?")
+    unvalidatedisbns = map(lambda x: x.replace(' ', ''),  isbns)
+    print 'unval', unvalidatedisbns
+    def boolvalidate(isbn):
+        try:
+            p = pyisbn.validate(isbn)
+        except:
+            return False
+        return p
+    validatedisbns = filter(lambda x: boolvalidate(x), unvalidatedisbns)
+    print 'val', validatedisbns
     xisbns = set()
     xocns = set()
     for isbn in isbns:
@@ -458,10 +467,9 @@ def run(wpsitelang):
     for page in generator:
         touched += 1
         fake = False
-        '''
-        for testing specific pages
+        '''for testing specific pages
         if fake:
-            page = pywikibot.Page(en_wikipedia, 'The Battle for Bond')
+            page = pywikibot.Page(en_wikipedia, 'One Hand Clapping (novel)')
             wpsitelang = 'en'
         '''
         if not fake:
