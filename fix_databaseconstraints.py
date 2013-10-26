@@ -43,14 +43,13 @@ fixcases = json.load(fixcasesJSON)
 
 
 sections = wikicode.get_sections()
+
 for section in sections:
     if section[:10] == '== "Format':
         linenum = 0    
         for line in section.split('\n',10000):
             linenum+=1
             print linenum
-            if linenum % 20 == 0:
-                r = raw_input()
             if fixcases['prevtouched'] > linenum-1:
                 continue
             linecode = mwp.parse(line)
