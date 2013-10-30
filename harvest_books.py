@@ -30,7 +30,8 @@ if not en_wikipedia.logged_in(): en_wikipedia.login()
 source = pywikibot.Claim(wikidata, 'p143')
 source.setTarget(pywikibot.ItemPage(wikidata,'q328'))
 
-properties = {'isbn':'P212', 
+properties = {'isbn13':'P212',
+              'isbn10':'P957', 
               'ocn':'P243', 
               'illustrator': 'P110',
               'author': 'P50',
@@ -210,15 +211,14 @@ def incorp_xdata(book):
             book.ocns.append(book.xocns[0])
             cases['got_ocn_from_xisbn'] += 1
             
+def ISBNsize(isbn, isbnlen):
+    justnums = filter(lambda x: x in '1234567890Xx', isbn)
+    if len(justnums) == isbnlen:
+        return True
+    else:
+        return False
+            
 def checkISBN13(book):
-    def ISBNsize(isbn, isnblen):
-        justnums = filter(lambda x: x in '1234567890Xx', isbn)
-        if len(justnums) == isbnlen:
-            return True
-        else:
-            return False
-        
-        
     isbnlists ={13: list(), 10:list() }
     for isbnlen in isbnlists.iterkeys():
         for isbn in book.isbns:
@@ -233,6 +233,7 @@ def checkISBN13(book):
             print 'using an xisbn here'
             cases['put_in_a_isbn13'] += 1
     
+    '''        
     if isbnlists[10] and not isbnlists[13]:
         for isbn in isbnlists[10]:
             try:
@@ -241,7 +242,7 @@ def checkISBN13(book):
                 book.isbns.append(converted)
             except:
                 pass
-
+    '''
 def processRE(param, rx):
     cleaned_text = textlib.removeDisabledParts(unicode(param.value.strip()))
     relist = re.findall(rx, cleaned_text)
@@ -368,24 +369,30 @@ def processPage(page, wpsitelang):
 def propertiesToClaims(book, lang):
     localClaims = list() #we're returning this
 
-    bookattrs = {'isbn': book.isbns, 
-                  'ocn': book.ocns, 
-                  'illustrator': book.illustrators,
-                  'author': book.authors,
-                  'lang': book.langs,
-                  'genre': book.genres}
+    nonisbn_bookattrs = {'ocn': book.ocns, 
+                         'illustrator': book.illustrators,
+                         'author': book.authors,
+                         'lang': book.langs,
+                         'genre': book.genres}
     
-    for book_k, book_v in bookattrs.iteritems():
+    for book_k, book_v in nonisbn_bookattrs.iteritems():
         if book_v:
             for attr in book_v:
                 claimObj = pywikibot.Claim(site=wikidata, pid=properties[book_k])
                 claimObj.setTarget(attr)
-
                 localClaims.append(claimObj)
+    
+    for isbn in book.isbns:
+        if ISBNsize(isbn, 10):
+            claimObj = pywikibot.Claim(site=wikidata, pid=properties['isbn10'])
+            claimObj.setTarget(isbn)
+            localClaims.append(claimObj)
+        if ISBNsize(isbn, 13):
+            claimObj = pywikibot.Claim(site=wikidata, pid=properties['isbn13'])
+            claimObj.setTarget(isbn)
+            localClaims.append(claimObj)
                 
     return localClaims
-
-
 
 
 def compareClaims(book, sourcelang):
@@ -420,15 +427,16 @@ def compareClaims(book, sourcelang):
         for remoteClaimList in remoteClaims.itervalues():
             for remoteClaim in remoteClaimList:
                 if localClaim.id == remoteClaim.id:
-                    #now we see if a our source is there
-                    for remoteSourceDict in remoteClaim.getSources():
-                        for remoteSourceList in remoteSourceDict.itervalues():
-                            for remoteSource in remoteSourceList:
-                                if remoteSource.id == localSource.id:
-                                    if remoteSource.getTarget() == localSource.getTarget():
-                                        matchingClaimSourced = True
-                    if not matchingClaimSourced:
-                        matchingClaimUnsourced = remoteClaim
+                    if localClaim.getTarget() == remoteClaim.getTarget():
+                        #now we see if a our source is there
+                        for remoteSourceDict in remoteClaim.getSources():
+                            for remoteSourceList in remoteSourceDict.itervalues():
+                                for remoteSource in remoteSourceList:
+                                    if remoteSource.id == localSource.id:
+                                        if remoteSource.getTarget() == localSource.getTarget():
+                                            matchingClaimSourced = True
+                        if not matchingClaimSourced:
+                            matchingClaimUnsourced = remoteClaim
         if not matchingClaimUnsourced:
             noMatchingClaim = True
         
@@ -467,9 +475,9 @@ def run(wpsitelang):
     for page in generator:
         touched += 1
         fake = False
-        '''for testing specific pages
+        '''
         if fake:
-            page = pywikibot.Page(en_wikipedia, 'One Hand Clapping (novel)')
+            page = pywikibot.Page(en_wikipedia, "Sophie's_World")
             wpsitelang = 'en'
         '''
         if not fake:
